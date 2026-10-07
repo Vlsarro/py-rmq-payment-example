@@ -18,8 +18,10 @@ class Settings(BaseSettings):
     api_key: str = "dev-secret-key"
     webhook_secret: str = "dev-webhook-secret"
 
+    # --- Infrastructure ---------------------------------------------------
+    database_url: str = "postgresql+asyncpg://payments:payments@postgres:5432/payments"
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    """Return the process-wide settings singleton."""
     return Settings()
