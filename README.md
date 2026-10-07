@@ -1,2 +1,7 @@
-# py-rmq-payment-example
-Python-based example service for payment processing
+# Asynchronous payment processing service example
+
+## Start app
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
