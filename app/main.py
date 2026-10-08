@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
+from app.api.router import router as payments_router
 from app.config import get_settings
 from app.db.session import dispose_db_engine, get_db_engine
 from app.logging import configure_logging
@@ -36,6 +37,7 @@ app = FastAPI(
     summary="Asynchronous payment processing service.",
     lifespan=lifespan,
 )
+app.include_router(payments_router)
 
 
 @app.get("/health", tags=["ops"], summary="Liveness and database probe")
