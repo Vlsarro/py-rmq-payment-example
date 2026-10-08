@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:18-alpine
+    image: postgres:16-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-payments}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-payments}
@@ -27,6 +27,9 @@ services:
       APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
     ports:
       - "${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+          condition: service_healthy
     restart: unless-stopped
 
 volumes:
