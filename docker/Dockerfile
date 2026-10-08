@@ -12,6 +12,8 @@ RUN uv sync --locked --no-dev --no-install-project
 
 ENV PATH="/app/.venv/bin:$PATH"
 
+COPY alembic.ini ./
+COPY alembic ./alembic
 COPY app ./app
 
 RUN useradd --create-home --uid 10001 appuser \

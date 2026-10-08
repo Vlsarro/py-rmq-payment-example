@@ -22,11 +22,16 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     environment:
+      APP_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-payments}:${POSTGRES_PASSWORD:-payments}@postgres:5432/${POSTGRES_DB:-payments}
       APP_API_KEY: ${APP_API_KEY:-dev-secret-key}
       APP_WEBHOOK_SECRET: ${APP_WEBHOOK_SECRET:-dev-webhook-secret}
       APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
     ports:
       - "${API_PORT:-8000}:8000"
+    command:
+      - sh
+      - -c
+      - "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     depends_on:
       postgres:
           condition: service_healthy
