@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,6 +25,11 @@ class Settings(BaseSettings):
     # --- Webhook delivery -------------------------------------------------
     webhook_timeout: float = 10.0
     webhook_allowed_hosts: frozenset[str] = frozenset()
+
+    # --- Payment gateway emulator ----------------------------------------
+    gateway_success_rate: float = Field(default=0.9, gt=0.0, le=1.0)
+    gateway_min_delay: float = Field(default=2.0, ge=0.0)
+    gateway_max_delay: float = Field(default=5.0, ge=0.0)
 
     def is_host_allowed(self, host: str) -> bool:
         if not self.webhook_allowed_hosts:
