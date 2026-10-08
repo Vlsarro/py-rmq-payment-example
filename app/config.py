@@ -21,6 +21,17 @@ class Settings(BaseSettings):
     # --- Infrastructure ---------------------------------------------------
     database_url: str = "postgresql+asyncpg://payments:payments@postgres:5432/payments"
 
+    # --- Webhook delivery -------------------------------------------------
+    webhook_timeout: float = 10.0
+    webhook_allowed_hosts: frozenset[str] = frozenset()
+
+    def is_host_allowed(self, host: str) -> bool:
+        if not self.webhook_allowed_hosts:
+            # An empty allowlist permits any host, which keeps local development
+            # friction-free. Configure the variable to lock webhooks down.
+            return True
+        return host.lower() in {h.lower() for h in self.webhook_allowed_hosts}
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
