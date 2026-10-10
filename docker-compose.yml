@@ -17,6 +17,24 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
   api:
     build:
       context: .
@@ -35,6 +53,14 @@ services:
     depends_on:
       postgres:
           condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "/app/app/healthcheck.py"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
 
   webhook-sink:
@@ -52,7 +78,51 @@ services:
       - "8080"
     ports:
       - "${SINK_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+      consumer:
+        condition: service_healthy
+    restart: unless-stopped
+
+  consumer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    environment:
+      APP_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-payments}:${POSTGRES_PASSWORD:-payments}@postgres:5432/${POSTGRES_DB:-payments}
+      APP_RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/
+      APP_API_KEY: ${APP_API_KEY:-dev-secret-key}
+      APP_WEBHOOK_SECRET: ${APP_WEBHOOK_SECRET:-dev-webhook-secret}
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
+      APP_RETRY_MAX_ATTEMPTS: ${APP_RETRY_MAX_ATTEMPTS:-3}
+      APP_RETRY_BASE_TTL_MS: ${APP_RETRY_BASE_TTL_MS:-5000}
+      APP_RETRY_TTL_MS: ${APP_RETRY_TTL_MS:-30000}
+      APP_CONSUMER_PREFETCH: ${APP_CONSUMER_PREFETCH:-4}
+      APP_GATEWAY_SUCCESS_RATE: ${APP_GATEWAY_SUCCESS_RATE:-0.9}
+      APP_WEBHOOK_ALLOWED_HOSTS: ${APP_WEBHOOK_ALLOWED_HOSTS:-}
+      APP_DLQ_CONSUMER_ENABLED: ${APP_DLQ_CONSUMER_ENABLED:-false}
+    # Migrations run in the api service, which Compose starts first.
+    command: ["python", "-m", "app.services.payments_processor"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket,sys; s=socket.create_connection(('rabbitmq',5672),5); s.close()"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     restart: unless-stopped
 
 volumes:
   postgres-data:
+  rabbitmq-data:

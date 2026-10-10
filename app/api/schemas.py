@@ -35,7 +35,7 @@ AMOUNT_SCALE = Decimal("0.0001")
 
 
 class PaymentCreateRequest(BaseModel):
-    """Body of ``POST /api/v1/payments``."""
+    """Body of `POST /api/v1/payments`."""
 
     model_config = ConfigDict(
         extra="forbid",
@@ -125,14 +125,14 @@ class PaymentResponse(BaseModel):
 
 
 class PaymentCreatedEvent(BaseModel):
-    """Message body published to ``payments.new`` by the outbox relay."""
+    """Message body published to `payments.new` by the outbox relay."""
 
     model_config = ConfigDict(populate_by_name=True)
 
     event_id: uuid.UUID
     event_type: str = "payment.created"
     occurred_at: datetime
-    payment_id: uuid.UUID
+    payment_id: uuid.UUID = Field(validation_alias="id")
     amount: Decimal
     currency: Currency
     webhook_url: str
